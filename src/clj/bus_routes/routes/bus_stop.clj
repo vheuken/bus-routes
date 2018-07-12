@@ -30,3 +30,6 @@
 
 
 ;;TODO - namesti da radi lokalno postovanj iz mockupa
+
+
+;;TODO - uradi anti forgery preko websockta, tako da ne moras da brinese o potpisivanju
