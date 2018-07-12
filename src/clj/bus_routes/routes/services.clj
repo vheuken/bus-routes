@@ -4,7 +4,9 @@
             [schema.core :as s]
             [compojure.api.meta :refer [restructure-param]]
             [buddy.auth.accessrules :refer [restrict]]
-            [buddy.auth :refer [authenticated?]]))
+            [buddy.auth :refer [authenticated?]]
+            [bus-routes.routes.bus-stop :as bus-stop]))
+
 
 (defn access-error [_ _]
   (unauthorized {:error "unauthorized"}))
@@ -27,14 +29,14 @@
              :data {:info {:version "1.0.0"
                            :title "Sample API"
                            :description "Sample Services"}}}}
-  
+
   (GET "/authenticated" []
        :auth-rules authenticated?
        :current-user user
        (ok {:user user}))
-  (context "/api" []
+  (context "/example-api" []
     :tags ["thingie"]
-    
+
     (GET "/plus" []
       :return       Long
       :query-params [x :- Long, {y :- Long 1}]
@@ -63,4 +65,19 @@
       :return      Long
       :header-params [x :- Long, y :- Long]
       :summary     "x^y with header-parameters"
-      (ok (long (Math/pow x y))))))
+      (ok (long (Math/pow x y)))))
+  (context "/api" []
+    :tags ["bus-routes"]
+
+    (GET "/:bus-line" []
+      :return bus-stop/Coord
+      :path-params [bus-line :- String]
+      :summary "returns"
+      (bus-stop/get-coord bus-line))
+
+    (POST "/route" request
+      :body [coord bus-stop/Coord]
+      :summary "receiver for bus routes"
+      (bus-stop/receive-coord coord))
+
+    ))
