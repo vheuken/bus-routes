@@ -3,12 +3,17 @@
             [ring.util.http-response :as response]
             [clojure.tools.logging :as log]))
 
-
+;;https://github.com/yogthos/memory-hole/blob/master/src/clj/memory_hole/routes/services/groups.clj#L15
+;;pokupi foru za error u schema
 (s/defschema Coord
   {:bus-line String
    :current-lat String
    :current-long String
    :timestamp Long})
+
+(s/defschema BusLineCoord
+  {(s/optional-key :coord) Coord
+   (s/optional-key :error) s/Str})
 
 (defonce all-coords (atom []))
 
@@ -16,7 +21,9 @@
 (defn get-coord [bus-line]
   (let [latest-coord (last (filterv #(= bus-line (:bus-line %)) @all-coords))
         _ (log/info latest-coord)]
-    (response/ok latest-coord)))
+    (if (nil? latest-coord)
+      (response/precondition-failed {:error "no coords"})
+      (response/ok {:coord latest-coord}))))
 
 (defn receive-coord [coord]
   (try

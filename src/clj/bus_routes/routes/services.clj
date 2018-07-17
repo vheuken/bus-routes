@@ -70,9 +70,9 @@
     :tags ["bus-routes"]
 
     (GET "/:bus-line" []
-      :return bus-stop/Coord
+      :return bus-stop/BusLineCoord
       :path-params [bus-line :- String]
-      :summary "returns"
+      :summary "returns latest coord for given valid bus-line"
       (bus-stop/get-coord bus-line))
 
     (POST "/route" request
