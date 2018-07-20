@@ -44,9 +44,34 @@
       [:div {:dangerouslySetInnerHTML
              {:__html (md->html docs)}}]])])
 
+
+
+(defn get-route! [bus-line]
+  (GET (str "/api/" bus-line)
+       {:handler (fn [coord] (do
+                               (rf/dispatch [:set-coord coord])
+                               (rf/dispatch [:set-error nil])))
+        :error-handler #(rf/dispatch [:set-error true])}))
+
+(defn route-page []
+  (let [selected (atom nil)]
+    [:div.container "Choose your route"
+     (when-let [error (rf/subscribe [:error])]
+       [:div (str @error)])
+     [:select {:on-change #(do
+                             (reset! selected (-> % .-target .-value))
+                             (rf/dispatch [:remove-coord]))}
+      [:option {:value "string"} "string"]
+      [:option {:value "string1"} "string1"]]
+     [:button.btn.btn-primary {:on-click  #(get-route! @selected)} "send"]
+     (when-let [coord (rf/subscribe [:coord])]
+       [:div (str @coord)])]
+    ))
+
 (def pages
   {:home #'home-page
-   :about #'about-page})
+   :about #'about-page
+   :route #'route-page})
 
 (defn page []
   [:div
@@ -63,6 +88,10 @@
 
 (secretary/defroute "/about" []
   (rf/dispatch [:navigate :about]))
+
+(secretary/defroute "/route" []
+  (rf/dispatch [:navigate :route]))
+
 
 ;; -------------------------
 ;; History
@@ -86,7 +115,8 @@
 
 (defn init! []
   (rf/dispatch-sync [:navigate :home])
+  ;; (rf/dispatch-sync [:initialize-db])
   (load-interceptors!)
-  (fetch-docs!)
+  ;; (fetch-docs!)
   (hook-browser-navigation!)
   (mount-components))

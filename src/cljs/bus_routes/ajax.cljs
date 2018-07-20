@@ -7,7 +7,9 @@
 (defn default-headers [request]
   (if (local-uri? request)
     (-> request
-        (update :headers #(merge {"x-csrf-token" js/csrfToken} %)))
+        (update :uri #(str js/context %))
+        (update :headers #(merge {"Accept" "application/transit+json"
+                                  "x-csrf-token" js/csrfToken} %)))
     request))
 
 (defn load-interceptors! []
@@ -15,5 +17,3 @@
          conj
          (ajax/to-interceptor {:name "default headers"
                                :request default-headers})))
-
-
