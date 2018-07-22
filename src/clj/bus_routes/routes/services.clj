@@ -5,7 +5,9 @@
             [compojure.api.meta :refer [restructure-param]]
             [buddy.auth.accessrules :refer [restrict]]
             [buddy.auth :refer [authenticated?]]
-            [bus-routes.routes.bus-stop :as bus-stop]))
+            [bus-routes.routes.bus-stop :as bus-stop]
+
+            [bus-routes.ws :refer [ring-ajax-get-or-ws-handshake ring-ajax-post]]))
 
 
 (defn access-error [_ _]
@@ -78,6 +80,18 @@
     (POST "/route" request
       :body [coord bus-stop/Coord]
       :summary "receiver for bus routes"
-      (bus-stop/receive-coord coord))
+      (bus-stop/receive-coord coord)))
 
-    ))
+
+  ;; (context "/wss" []
+  ;;   :tags ["wss"]
+
+  ;;   ;; (POST "/wss-submit-form" req
+  ;;   ;;       (my-form-submit-handler req))
+
+  ;;   (GET "/chsk" req
+  ;;     (ring-ajax-get-or-ws-handshake req))
+
+  ;;   (POST "/chsk" req (ring-ajax-post req)))
+
+    )

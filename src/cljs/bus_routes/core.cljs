@@ -57,7 +57,7 @@
   (let [selected (atom nil)]
     [:div.container "Choose your route"
      (when-let [error (rf/subscribe [:error])]
-       [:div (str @error)])
+       [:div (str "ERROR: " @error)])
      [:select {:on-change #(do
                              (reset! selected (-> % .-target .-value))
                              (rf/dispatch [:remove-coord]))}
@@ -65,13 +65,38 @@
       [:option {:value "string1"} "string1"]]
      [:button.btn.btn-primary {:on-click  #(get-route! @selected)} "send"]
      (when-let [coord (rf/subscribe [:coord])]
-       [:div (str @coord)])]
-    ))
+       [:div (str @coord)])]))
+
+
+(defn disconnected []
+  (fn []
+    [:div "You are not connected"]))
+
+
+(defn counter []
+  (let [c (rf/subscribe [:count])]
+    (fn []
+      [:div "Count:" @c
+       [:button {:on-click #(rf/dispatch [:increment-count 1])} "+" ]
+       [:button {:on-click #(rf/dispatch [:increment-count -1])} "-" ]])))
+
+
+(defn main-panel []
+  (let [connected? (rf/subscribe [:ws/connected])]
+    (fn []
+      (if @connected?
+        [:div [counter]
+         ;; "YAAAY"
+         ]
+        [:div [disconnected]
+         ;; "NAYYY"
+         ]))))
 
 (def pages
   {:home #'home-page
    :about #'about-page
-   :route #'route-page})
+   :route #'route-page
+   :ws #'main-panel})
 
 (defn page []
   [:div
@@ -91,6 +116,10 @@
 
 (secretary/defroute "/route" []
   (rf/dispatch [:navigate :route]))
+
+(secretary/defroute "/ws" []
+  (rf/dispatch [:navigate :ws]))
+
 
 
 ;; -------------------------
@@ -114,8 +143,8 @@
   (r/render [#'page] (.getElementById js/document "app")))
 
 (defn init! []
-  (rf/dispatch-sync [:navigate :home])
-  ;; (rf/dispatch-sync [:initialize-db])
+  ;; (rf/dispatch-sync [:navigate :home])
+  (rf/dispatch-sync [:initialize-db])
   (load-interceptors!)
   ;; (fetch-docs!)
   (hook-browser-navigation!)

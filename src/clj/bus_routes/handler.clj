@@ -1,5 +1,5 @@
 (ns bus-routes.handler
-  (:require 
+  (:require
             [bus-routes.layout :refer [error-page]]
             [bus-routes.routes.home :refer [home-routes]]
             [bus-routes.routes.services :refer [service-routes]]
@@ -26,4 +26,3 @@
              (:body
                (error-page {:status 404
                             :title "page not found"}))))))
-

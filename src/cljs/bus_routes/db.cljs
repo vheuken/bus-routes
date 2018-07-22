@@ -3,4 +3,6 @@
 (def default-db
   {:page :route
    :coord false
-   :error false})
+   :error false
+   :ws/connected false
+   :count 0})
