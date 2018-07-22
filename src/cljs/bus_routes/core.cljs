@@ -57,7 +57,7 @@
   (let [selected (atom nil)]
     [:div.container "Choose your route"
      (when-let [error (rf/subscribe [:error])]
-       [:div (str @error)])
+       [:div (str "ERROR: " @error)])
      [:select {:on-change #(do
                              (reset! selected (-> % .-target .-value))
                              (rf/dispatch [:remove-coord]))}
