@@ -8,64 +8,64 @@
    [clojure.tools.logging :as log]))
 
 
-(let [packer :edn
-      chsk-server (sente/make-channel-socket-server!
-                   (get-sch-adapter) {:packer packer})
-      {:keys [ch-recv send-fn connected-uids
-              ajax-post-fn ajax-get-or-ws-handshake-fn]} chsk-server]
+;; (let [packer :edn
+;;       chsk-server (sente/make-channel-socket-server!
+;;                    (get-sch-adapter) {:packer packer})
+;;       {:keys [ch-recv send-fn connected-uids
+;;               ajax-post-fn ajax-get-or-ws-handshake-fn]} chsk-server]
 
-  (def ring-ajax-post                ajax-post-fn)
-  (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
-  (def ch-chsk                       ch-recv) ; ChannelSocket's receive channel
-  (def chsk-send!                    send-fn) ; ChannelSocket's send API fn
-  (def connected-uids                connected-uids) ; Watchable, read-only atom
-  )
-
-
-(defroutes websocket-routes
-  (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
-  (POST "/chsk" req (ring-ajax-post req)))
+;;   (def ring-ajax-post                ajax-post-fn)
+;;   (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
+;;   (def ch-chsk                       ch-recv) ; ChannelSocket's receive channel
+;;   (def chsk-send!                    send-fn) ; ChannelSocket's send API fn
+;;   (def connected-uids                connected-uids) ; Watchable, read-only atom
+;;   )
 
 
-(add-watch connected-uids :connected-uids
-           (fn [_ _ old new]
-             (when (not= old new)
-               (println "Connected uids change: %s" new))))
+;; (defroutes websocket-routes
+;;   (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
+;;   (POST "/chsk" req (ring-ajax-post req)))
+
+
+;; (add-watch connected-uids :connected-uids
+;;            (fn [_ _ old new]
+;;              (when (not= old new)
+;;                (println "Connected uids change: %s" new))))
 
 ;;;; Some server>user async push examples
 
-(defn test-fast-server>user-pushes
-  "Quickly pushes 100 events to all connected users. Note that this'll be
-  fast+reliable even over Ajax!"
-  []
-  (doseq [uid (:any @connected-uids)]
-    (doseq [i (range 100)]
-      (chsk-send! uid [:fast-push/is-fast {:data (str "JEBEM TI MAJKUUU: " i "x!!")}]))))
+;; (defn test-fast-server>user-pushes
+;;   "Quickly pushes 100 events to all connected users. Note that this'll be
+;;   fast+reliable even over Ajax!"
+;;   []
+;;   (doseq [uid (:any @connected-uids)]
+;;     (doseq [i (range 100)]
+;;       (chsk-send! uid [:fast-push/is-fast {:data (str "JEBEM TI MAJKUUU: " i "x!!")}]))))
 
-(comment (test-fast-server>user-pushes))
+;; (comment (test-fast-server>user-pushes))
 
-(defonce broadcast-enabled?_ (atom true))
+;; (defonce broadcast-enabled?_ (atom true))
 
-(defn start-example-broadcaster!
-  "As an example of server>user async pushes, setup a loop to broadcast an
-  event to all connected users every 10 seconds"
-  []
-  (let [broadcast!
-        (fn [i]
-          (let [uids (:any @connected-uids)]
-            (println "Broadcasting server>user: %s uids" (count uids))
-            (doseq [uid uids]
-              (chsk-send! uid
-                          [:some/broadcast
-                           {:what-is-this "An async broadcast pushed from server"
-                            :how-often "Every 10 seconds"
-                            :to-whom uid
-                            :i i}]))))]
+;; (defn start-example-broadcaster!
+;;   "As an example of server>user async pushes, setup a loop to broadcast an
+;;   event to all connected users every 10 seconds"
+;;   []
+;;   (let [broadcast!
+;;         (fn [i]
+;;           (let [uids (:any @connected-uids)]
+;;             (println "Broadcasting server>user: %s uids" (count uids))
+;;             (doseq [uid uids]
+;;               (chsk-send! uid
+;;                           [:some/broadcast
+;;                            {:what-is-this "An async broadcast pushed from server"
+;;                             :how-often "Every 10 seconds"
+;;                             :to-whom uid
+;;                             :i i}]))))]
 
-    (go-loop [i 0]
-      (<! (async/timeout 10000))
-      (when @broadcast-enabled?_ (broadcast! i))
-      (recur (inc i)))))
+;;     (go-loop [i 0]
+;;       (<! (async/timeout 10000))
+;;       (when @broadcast-enabled?_ (broadcast! i))
+;;       (recur (inc i)))))
 
 ;;;; Sente event handlers
 
@@ -91,32 +91,55 @@
     (when ?reply-fn
       (?reply-fn {:umatched-event-as-echoed-from-from-server event}))))
 
-(defmethod -event-msg-handler :example/test-rapid-push
-  [ev-msg] (test-fast-server>user-pushes))
+;; (defmethod -event-msg-handler :example/test-rapid-push
+;;   [ev-msg] (test-fast-server>user-pushes))
 
-(defmethod -event-msg-handler :example/toggle-broadcast
-  [{:as ev-msg :keys [?reply-fn]}]
-  (let [loop-enabled? (swap! broadcast-enabled?_ not)]
-    (?reply-fn loop-enabled?)))
+;; (defmethod -event-msg-handler :example/toggle-broadcast
+;;   [{:as ev-msg :keys [?reply-fn]}]
+;;   (let [loop-enabled? (swap! broadcast-enabled?_ not)]
+;;     (?reply-fn loop-enabled?)))
 
 ;; TODO Add your (defmethod -event-msg-handler <event-id> [ev-msg] <body>)s here...
 
 (defmethod -event-msg-handler :test/first
   [{:as ev-msg :keys [?reply-fn]}]
-  (let [_ (log/info ev-msg)]
-    (?reply-fn ev-msg)))
+  (println (:?data ev-msg)))
 
 
-(defonce router_ (atom nil))
-(defn  stop-router! [] (when-let [stop-fn @router_] (stop-fn)))
-(defn start-router! []
-  (stop-router!)
-  (reset! router_
-          (sente/start-server-chsk-router!
-           ch-chsk event-msg-handler)))
+;; (defonce router_ (atom nil))
+;; (defn  stop-router! [] (when-let [stop-fn @router_] (stop-fn)))
+;; (defn start-router! []
+;;   (stop-router!)
+;;   (reset! router_
+;;           (sente/start-server-chsk-router!
+;;            ch-chsk event-msg-handler)))
 
 
 
-(defstate channel
-  :start (defn start! [] (start-router!)  (start-example-broadcaster!))
-  :stop (defn stop!  []  (stop-router!)  ))
+;; (defstate channel
+;;   :start (defn start! [] (start-router!)  (start-example-broadcaster!))
+;;   :stop (defn stop!  []  (stop-router!)  ))
+
+
+(defn start-socket-server! [event-msg-handler]
+  (let [{:keys [ch-recv send-fn connected-uids
+                ajax-post-fn ajax-get-or-ws-handshake-fn]}
+        (sente/make-channel-socket! (get-sch-adapter) {})]
+    (def send! send-fn)
+    (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
+    {:ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn
+     :ring-ajax-post-fn ajax-post-fn
+     :connected-uids connected-uids
+     :ch-recv ch-recv
+     :send-fn send-fn
+     :stop-fn (sente/start-chsk-router! ch-recv event-msg-handler)}))
+
+(mount/defstate channel
+  :start (start-socket-server! event-msg-handler)
+  :stop (:stop-fn channel))
+
+
+(defroutes websocket-routes
+  (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
+  (POST "/chsk" req (ring-ajax-get-or-ws-handshake  req))
+  )
