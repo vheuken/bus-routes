@@ -69,7 +69,7 @@
         [:div (str @coord)])]
      [:br]
      [:button {:type "button"
-               :on-click #(rf/dispatch [:ws "AAAA"])} "chsk-send! [:test/first]"]]
+               :on-click #(rf/dispatch [:ws {:data "AAAA"}])} "chsk-send! [:test/first]"]]
     ))
 
 

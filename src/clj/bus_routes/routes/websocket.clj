@@ -4,12 +4,15 @@
    [taoensso.sente :as sente]
    [taoensso.sente.server-adapters.immutant :refer (get-sch-adapter)]
    [mount.core :refer [defstate] :as mount]
-   [clojure.core.async :as async :refer (<! <!! >! >!! put! chan go go-loop)]))
+   [clojure.core.async :as async :refer (<! <!! >! >!! put! chan go go-loop)]
+   [clojure.tools.logging :as log]))
 
 
-(let [{:keys [ch-recv send-fn connected-uids
-              ajax-post-fn ajax-get-or-ws-handshake-fn]}
-      (sente/make-channel-socket! (get-sch-adapter) {})]
+(let [packer :edn
+      chsk-server (sente/make-channel-socket-server!
+                   (get-sch-adapter) {:packer packer})
+      {:keys [ch-recv send-fn connected-uids
+              ajax-post-fn ajax-get-or-ws-handshake-fn]} chsk-server]
 
   (def ring-ajax-post                ajax-post-fn)
   (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
@@ -37,7 +40,7 @@
   []
   (doseq [uid (:any @connected-uids)]
     (doseq [i (range 100)]
-      (chsk-send! uid [:fast-push/is-fast (str "hello " i "!!")]))))
+      (chsk-send! uid [:fast-push/is-fast {:data (str "JEBEM TI MAJKUUU: " i "x!!")}]))))
 
 (comment (test-fast-server>user-pushes))
 
@@ -74,6 +77,7 @@
 (defn event-msg-handler
   "Wraps `-event-msg-handler` with logging, error catching, etc."
   [{:as ev-msg :keys [id ?data event]}]
+  ;; (println [id ?data])
   (-event-msg-handler ev-msg) ; Handle event-msgs on a single thread
   ;; (future (-event-msg-handler ev-msg)) ; Handle event-msgs on a thread pool
   )
@@ -99,7 +103,8 @@
 
 (defmethod -event-msg-handler :test/first
   [{:as ev-msg :keys [?reply-fn]}]
-  (println ev-msg))
+  (let [_ (log/info ev-msg)]
+    (?reply-fn ev-msg)))
 
 
 (defonce router_ (atom nil))

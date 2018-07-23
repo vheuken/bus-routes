@@ -3,14 +3,17 @@
    [cljs.core.async.macros :as asyncm :refer (go go-loop)])
   (:require
    [cljs.core.async :as async :refer (<! >! put! chan)]
-   [taoensso.sente  :as sente :refer (cb-success?)]))
+   [taoensso.sente  :as sente :refer (cb-success?)]
+   [taoensso.encore :as encore :refer-macros (have have?)]))
 
 
-;;; Add this: --->
-(let [{:keys [chsk ch-recv send-fn state]}
-      (sente/make-channel-socket! "/chsk" ; Note the same path as before
-                                  {:type :auto ; e/o #{:auto :ajax :ws}
-                                   })]
+(let [rand-chsk-type (if (>= (rand) 0.5) :ajax :auto)
+      _ (println "Randomly selected chsk type: %s" rand-chsk-type)
+      packer :edn
+      {:keys [chsk ch-recv send-fn state]} (sente/make-channel-socket-client! "/chsk"
+       {:type   rand-chsk-type
+        :packer packer})]
+
   (def chsk       chsk)
   (def ch-chsk    ch-recv) ; ChannelSocket's receive channel
   (def chsk-send! send-fn) ; ChannelSocket's send API fn
@@ -35,7 +38,7 @@
 
 (defmethod -event-msg-handler :chsk/state
   [{:as ev-msg :keys [?data]}]
-  (let [new-state-map (second ?data)]
+  (let [[old-state-map new-state-map] (have vector? ?data)]
     (if (:first-open? new-state-map)
       (println "Channel socket successfully established!: %s" new-state-map)
       (println "Channel socket state change: %s"              new-state-map))))
@@ -50,7 +53,7 @@
     (println "Handshake: %s" ?data)))
 
 
-
+;; (chsk-send! [:test/first {:data (str "JEBEM TI MAJKUUU: 10x!!")}])
 
 ;; TODO Add your (defmethod -event-msg-handler <event-id> [ev-msg] <body>)s here...
 

@@ -42,7 +42,7 @@
 (reg-event-db
  :ws
  (fn [db [_ data]]
-   (ws/chsk-send! [:test/first {:data data}])
+   (ws/chsk-send! [:test/first data])
    (assoc db :sent "SENT")))
 
 
