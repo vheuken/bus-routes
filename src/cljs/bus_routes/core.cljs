@@ -55,18 +55,24 @@
 
 (defn route-page []
   (let [selected (atom nil)]
-    [:div.container "Choose your route"
-     (when-let [error (rf/subscribe [:error])]
-       [:div (str "ERROR: " @error)])
-     [:select {:on-change #(do
-                             (reset! selected (-> % .-target .-value))
-                             (rf/dispatch [:remove-coord]))}
-      [:option {:value "string"} "string"]
-      [:option {:value "string1"} "string1"]]
-     [:button.btn.btn-primary {:on-click  #(get-route! @selected)} "send"]
-     (when-let [coord (rf/subscribe [:coord])]
-       [:div (str @coord)])]
+    [:div
+     [:div.container "Choose your route"
+      (when-let [error (rf/subscribe [:error])]
+        [:div (str "ERROR: " @error)])
+      [:select {:on-change #(do
+                              (reset! selected (-> % .-target .-value))
+                              (rf/dispatch [:remove-coord]))}
+       [:option {:value "string"} "string"]
+       [:option {:value "string1"} "string1"]]
+      [:button.btn.btn-primary {:on-click  #(get-route! @selected)} "send"]
+      (when-let [coord (rf/subscribe [:coord])]
+        [:div (str @coord)])]
+     [:br]
+     [:button {:type "button"
+               :on-click #(rf/dispatch [:ws "AAAA"])} "chsk-send! [:test/first]"]]
     ))
+
+
 
 (def pages
   {:home #'home-page
@@ -114,8 +120,8 @@
   (r/render [#'page] (.getElementById js/document "app")))
 
 (defn init! []
-  (rf/dispatch-sync [:navigate :home])
-  ;; (rf/dispatch-sync [:initialize-db])
+  ;; (rf/dispatch-sync [:navigate :home])
+  (rf/dispatch-sync [:initialize-db])
   (load-interceptors!)
   ;; (fetch-docs!)
   (hook-browser-navigation!)

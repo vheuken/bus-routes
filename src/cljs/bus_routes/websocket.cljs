@@ -35,7 +35,7 @@
 
 (defmethod -event-msg-handler :chsk/state
   [{:as ev-msg :keys [?data]}]
-  (let [[old-state-map new-state-map] ?data]
+  (let [new-state-map (second ?data)]
     (if (:first-open? new-state-map)
       (println "Channel socket successfully established!: %s" new-state-map)
       (println "Channel socket state change: %s"              new-state-map))))
@@ -49,12 +49,28 @@
   (let [[?uid ?csrf-token ?handshake-data] ?data]
     (println "Handshake: %s" ?data)))
 
+
+
+
 ;; TODO Add your (defmethod -event-msg-handler <event-id> [ev-msg] <body>)s here...
+
 (defmethod -event-msg-handler :test/first
   [{:as ev-msg :keys [?data]}]
   (let [[?uid ?csrf-token ?handshake-data] ?data]
-    (println "TESTERINO: %s" ?data)))
+    (println "TEST FIRST>>: %s" ?data)))
 
 
-(for [i (range 10)]
-  (chsk-send! [:test/first]))
+;;;; Sente event router (our `event-msg-handler` loop)
+
+(defonce router_ (atom nil))
+(defn  stop-router! [] (when-let [stop-f @router_] (stop-f)))
+(defn start-router! []
+  (stop-router!)
+  (reset! router_
+          (sente/start-client-chsk-router!
+           ch-chsk event-msg-handler)))
+
+
+(defn start! [] (start-router!))
+
+(defonce _start-once (start!))

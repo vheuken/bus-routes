@@ -38,7 +38,8 @@
                  [secretary "1.2.3"]
                  [selmer "1.11.8"]
 
-                 [com.taoensso/sente "1.12.0"]]
+                 [com.taoensso/sente "1.12.0"]
+                 [org.clojure/core.async "0.4.474"]]
 
   :min-lein-version "2.0.0"
 

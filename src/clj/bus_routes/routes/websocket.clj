@@ -2,7 +2,9 @@
   (:require
    [compojure.core :refer [defroutes GET POST]]
    [taoensso.sente :as sente]
-   [taoensso.sente.server-adapters.immutant :refer (get-sch-adapter)]))
+   [taoensso.sente.server-adapters.immutant :refer (get-sch-adapter)]
+   [mount.core :refer [defstate] :as mount]
+   [clojure.core.async :as async :refer (<! <!! >! >!! put! chan go go-loop)]))
 
 
 (let [{:keys [ch-recv send-fn connected-uids
@@ -21,6 +23,48 @@
   (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
   (POST "/chsk" req (ring-ajax-post req)))
 
+
+(add-watch connected-uids :connected-uids
+           (fn [_ _ old new]
+             (when (not= old new)
+               (println "Connected uids change: %s" new))))
+
+;;;; Some server>user async push examples
+
+(defn test-fast-server>user-pushes
+  "Quickly pushes 100 events to all connected users. Note that this'll be
+  fast+reliable even over Ajax!"
+  []
+  (doseq [uid (:any @connected-uids)]
+    (doseq [i (range 100)]
+      (chsk-send! uid [:fast-push/is-fast (str "hello " i "!!")]))))
+
+(comment (test-fast-server>user-pushes))
+
+(defonce broadcast-enabled?_ (atom true))
+
+(defn start-example-broadcaster!
+  "As an example of server>user async pushes, setup a loop to broadcast an
+  event to all connected users every 10 seconds"
+  []
+  (let [broadcast!
+        (fn [i]
+          (let [uids (:any @connected-uids)]
+            (println "Broadcasting server>user: %s uids" (count uids))
+            (doseq [uid uids]
+              (chsk-send! uid
+                          [:some/broadcast
+                           {:what-is-this "An async broadcast pushed from server"
+                            :how-often "Every 10 seconds"
+                            :to-whom uid
+                            :i i}]))))]
+
+    (go-loop [i 0]
+      (<! (async/timeout 10000))
+      (when @broadcast-enabled?_ (broadcast! i))
+      (recur (inc i)))))
+
+;;;; Sente event handlers
 
 (defmulti -event-msg-handler
   "Multimethod to handle Sente `event-msg`s"
@@ -43,9 +87,31 @@
     (when ?reply-fn
       (?reply-fn {:umatched-event-as-echoed-from-from-server event}))))
 
+(defmethod -event-msg-handler :example/test-rapid-push
+  [ev-msg] (test-fast-server>user-pushes))
+
+(defmethod -event-msg-handler :example/toggle-broadcast
+  [{:as ev-msg :keys [?reply-fn]}]
+  (let [loop-enabled? (swap! broadcast-enabled?_ not)]
+    (?reply-fn loop-enabled?)))
 
 ;; TODO Add your (defmethod -event-msg-handler <event-id> [ev-msg] <body>)s here...
 
 (defmethod -event-msg-handler :test/first
   [{:as ev-msg :keys [?reply-fn]}]
   (println ev-msg))
+
+
+(defonce router_ (atom nil))
+(defn  stop-router! [] (when-let [stop-fn @router_] (stop-fn)))
+(defn start-router! []
+  (stop-router!)
+  (reset! router_
+          (sente/start-server-chsk-router!
+           ch-chsk event-msg-handler)))
+
+
+
+(defstate channel
+  :start (defn start! [] (start-router!)  (start-example-broadcaster!))
+  :stop (defn stop!  []  (stop-router!)  ))

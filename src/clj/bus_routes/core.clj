@@ -50,6 +50,7 @@
 
 (defn -main [& args]
   (mount/start #'bus-routes.config/env)
+  (mount/start #'bus-routes.routes.websocket/channel)
   (cond
     (nil? (:database-url env))
     (do
@@ -65,4 +66,3 @@
       (System/exit 0))
     :else
     (start-app args)))
-  

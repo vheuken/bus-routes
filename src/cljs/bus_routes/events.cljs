@@ -1,12 +1,14 @@
 (ns bus-routes.events
   (:require [re-frame.core :refer [dispatch reg-event-db reg-sub]]
-            [bus-routes.db :as db]))
+            [bus-routes.db :as db]
+            [bus-routes.websocket :as ws]))
 
 ;;dispatchers
-;; (reg-event-db
-;;  :initialize-db
-;;  (fn [_ _]
-;;    db/default-db))
+
+(reg-event-db
+ :initialize-db
+ (fn [_]
+   db/default-db))
 
 
 (reg-event-db
@@ -36,6 +38,12 @@
    (dissoc db :coord)))
 
 
+
+(reg-event-db
+ :ws
+ (fn [db [_ data]]
+   (ws/chsk-send! [:test/first {:data data}])
+   (assoc db :sent "SENT")))
 
 
 ;;subscriptions
