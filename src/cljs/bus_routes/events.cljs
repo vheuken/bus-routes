@@ -2,7 +2,8 @@
   (:require [re-frame.core :refer [dispatch reg-event-db reg-sub]]
             [bus-routes.db :as db]
             [bus-routes.websocket :as ws]
-            [taoensso.sente  :as sente :refer (cb-success?)]))
+            [taoensso.sente  :as sente :refer (cb-success?)]
+            [day8.re-frame.tracing :refer-macros [fn-traced]]))
 
 ;;dispatchers
 
@@ -48,7 +49,7 @@
 
 (reg-event-db
  :bus-line/sub-to
- (fn [db [_ bus-line]]
+ (fn-traced [db [_ bus-line]]
    (ws/chsk-send! [:bus-line/sub-to {:bus-line bus-line}]
                   3000
                   (fn [reply]      ; Reply is arbitrary Clojure data
@@ -61,8 +62,8 @@
 
 (reg-event-db
  :bus-line/coord
- (fn [db [_ coord]]
-   (assoc db :bus-line/coord coord)))
+ (fn-traced [db [_ coord]]
+            (assoc db :bus-line/coord coord)))
 
 
 

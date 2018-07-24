@@ -91,6 +91,7 @@
                   :dependencies [[binaryage/devtools "0.9.10"]
                                  [com.cemerick/piggieback "0.2.2"]
                                  [day8.re-frame/re-frame-10x "0.3.3-react16"]
+                                 [day8.re-frame/tracing "0.5.1"]
                                  [doo "0.1.10"]
                                  [expound "0.7.1"]
                                  [figwheel-sidecar "0.5.16"]
@@ -114,7 +115,8 @@
                       :source-map true
                       :optimizations :none
                       :pretty-print true
-                      :closure-defines {"re_frame.trace.trace_enabled_QMARK_" true}
+                      :closure-defines {"re_frame.trace.trace_enabled_QMARK_" true
+                                        "day8.re_frame.tracing.trace_enabled_QMARK_" true}
                       :preloads [day8.re-frame-10x.preload]}}}}
 
 
