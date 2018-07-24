@@ -4,7 +4,10 @@
    [taoensso.sente :as sente]
    [taoensso.sente.server-adapters.immutant :refer (get-sch-adapter)]
    [mount.core :refer [defstate] :as mount]
-   [clojure.core.async :as async :refer (<! <!! >! >!! put! chan go go-loop)]))
+   [clojure.core.async :as async :refer (<! <!! >! >!! put! chan go go-loop)]
+   [bus-routes.util :as util]
+   [clojure.set :as set]
+   [bus-routes.routes.bus-stop :as bus-stop]))
 
 
 (defmulti -event-msg-handler
@@ -34,10 +37,24 @@
   (println (:?data ev-msg)))
 
 
+(defonce subscriptions (atom {}))
+
+(defmethod -event-msg-handler :bus-line/sub-to
+  [{:as ev-msg :keys [?reply-fn]}]
+  (let [data (select-keys ev-msg [:client-id :?data])
+        {:keys [client-id ?data]} data
+        _ (println "client: " client-id " wants: " ?data)]
+    (swap! subscriptions assoc client-id (:bus-line ?data))))
+
+
+
+
+
 (defn start-socket-server! [event-msg-handler]
   (let [{:keys [ch-recv send-fn connected-uids
                 ajax-post-fn ajax-get-or-ws-handshake-fn]}
-        (sente/make-channel-socket! (get-sch-adapter) {})]
+        (sente/make-channel-socket! (get-sch-adapter) {:user-id-fn
+                                                       (fn [ring-req] (:client-id ring-req))})]
     (def chsk-send! send-fn)
     (def ring-ajax-get-or-ws-handshake ajax-get-or-ws-handshake-fn)
     (def ring-ajax-post ajax-post-fn)
@@ -68,3 +85,59 @@
 ;;       (chsk-send! uid [:fast-push/is-fast {:data (str "test: " i)}]))))
 
 ;; (comment (test-fast-server>user-pushes))
+
+(defonce broadcast-enabled? (atom true))
+#_ (reset! broadcast-enabled? false)
+
+
+(defn filter-uids [all-conn subs]
+  (let [ac (set all-conn)
+        _ (println "all-uids: " ac)
+        s (set subs)
+        _ (println "subs: " s)]
+    (seq (set/intersection  ac s))))
+
+(defn start-example-broadcaster!
+  "As an example of server>user async pushes, setup a loop to broadcast an
+  event to all connected users every 10 seconds"
+  []
+  (let [broadcast!
+        (fn [i]
+          (let [uids (filter-uids (:any @connected-uids) (keys @subscriptions))]
+            (println "Broadcasting server>user: %s uids" (count uids))
+            (doseq [uid uids]
+              (chsk-send! uid
+                          [:bus-line/coord
+                           {:what-is-this "An async broadcast pushed from server"
+                            :how-often "Every 10 seconds"
+                            :to-whom uid
+                            :coord (bus-stop/latest-coord (get @subscriptions uid))
+                            :i i}]))))]
+
+    (go-loop [i 0]
+      (<! (async/timeout 10000))
+      (when @broadcast-enabled?
+        (broadcast! i))
+      (recur (inc i)))))
+
+(defonce start-broadcast (start-example-broadcaster!))
+
+;; (chsk-send! "79cfdd19-65c2-46eb-af8e-436f67a0a026"
+;;             [:bus-line/coord
+;;              {:what-is-this "An async broadcast pushed from server"
+;;               :how-often "Every 10 seconds"
+;;               :to-whom  "79cfdd19-65c2-46eb-af8e-436f67a0a026"
+;;               :coord (bus-stop/latest-coord
+;;                       (get @subscriptions "79cfdd19-65c2-46eb-af8e-436f67a0a026"))}])
+
+;; (chsk-send! "79cfdd19-65c2-46eb-af8e-436f67a0a026"
+;;             [:test/first
+;;              {:coord (bus-stop/latest-coord
+;;                       (get @subscriptions "79cfdd19-65c2-46eb-af8e-436f67a0a026"))}])
+
+
+
+;; (chsk-send! (java.util.UUID/fromString "79cfdd19-65c2-46eb-af8e-436f67a0a026") [:fast-push/is-fast {:data "testino"}])
+
+;; (doseq [uid (:any @connected-uids)]
+;;   (chsk-send! uid [:bus-stop/latest-coord {:data "testino"}]))

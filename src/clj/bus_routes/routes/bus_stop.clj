@@ -17,9 +17,11 @@
 
 (defonce all-coords (atom []))
 
+(defn latest-coord [bus-line]
+  (last (filterv #(= bus-line (:bus-line %)) @all-coords)))
 
 (defn get-coord [bus-line]
-  (let [latest-coord (last (filterv #(= bus-line (:bus-line %)) @all-coords))
+  (let [latest-coord (latest-coord bus-line)
         _ (log/info latest-coord)]
     (if (nil? latest-coord)
       (response/precondition-failed {:error "no coords"})

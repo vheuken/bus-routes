@@ -55,17 +55,22 @@
         :error-handler #(rf/dispatch [:set-error true])}))
 
 (defn route-page []
-  (let [selected (atom nil)]
+  (let [selected (atom "string")]
     [:div
      [:div.container "Choose your route"
       (when-let [error (rf/subscribe [:error])]
         [:div (str "ERROR: " @error)])
       [:select {:on-change #(do
                               (reset! selected (-> % .-target .-value))
-                              (rf/dispatch [:remove-coord]))}
+                              (rf/dispatch [:remove-coord])
+                              (println "dropdown selected: " @selected))}
        [:option {:value "string"} "string"]
        [:option {:value "string1"} "string1"]]
-      [:button.btn.btn-primary {:on-click  #(get-route! @selected)} "send"]
+      [:button.btn.btn-primary {:on-click
+
+                                #(rf/dispatch [:bus-line/sub-to @selected])
+                                ;; #(get-route! @selected)
+                                } "send"]
       (when-let [coord (rf/subscribe [:coord])]
         [:div (str @coord)])]
      [:br]

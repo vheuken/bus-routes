@@ -45,6 +45,12 @@
    (ws/chsk-send! [:test/first data])
    (assoc db :sent "SENT")))
 
+(reg-event-db
+ :bus-line/sub-to
+ (fn [db [_ bus-line]]
+   (ws/chsk-send! [:bus-line/sub-to {:bus-line bus-line}])
+   (assoc db :bus-line/sub-to bus-line)))
+
 
 ;;subscriptions
 

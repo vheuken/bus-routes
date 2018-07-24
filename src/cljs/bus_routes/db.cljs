@@ -2,5 +2,6 @@
 
 (def default-db
   {:page :route
-   :coord false
-   :error false})
+   :coord nil
+   :error nil
+   :bus-line/sub-to nil})

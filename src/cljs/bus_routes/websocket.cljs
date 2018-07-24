@@ -11,7 +11,7 @@
   (let [{:keys [chsk ch-recv send-fn state]}
         (sente/make-channel-socket-client! "/chsk" {:type :auto})]
 
-    (defonce chsk chsk)
+    (defonce chskk chsk)
     (defonce ch-chsk ch-recv) ; ChannelSocket's receive channel
     (defonce chsk-send! send-fn) ; ChannelSocket's send API fn
     (defonce chsk-state state)   ; Watchable, read-only atom
@@ -48,6 +48,10 @@
   [{:as ev-msg :keys [?data]}]
   (let [[?uid ?csrf-token ?handshake-data] ?data]
     (println "Handshake: %s" ?data)))
+
+(defmethod -event-msg-handler :bus-line/coord
+  [{:as ev-msg :keys [?data]}]
+  (println "Push coord from server: %s" ?data))
 
 
 ;; (chsk-send! [:test/first {:data (str "JEBEM TI MAJKUUU: 10x!!")}])
