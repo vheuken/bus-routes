@@ -4,8 +4,7 @@
    [taoensso.sente :as sente]
    [taoensso.sente.server-adapters.immutant :refer (get-sch-adapter)]
    [mount.core :refer [defstate] :as mount]
-   [clojure.core.async :as async :refer (<! <!! >! >!! put! chan go go-loop)]
-   [clojure.tools.logging :as log]))
+   [clojure.core.async :as async :refer (<! <!! >! >!! put! chan go go-loop)]))
 
 
 (defmulti -event-msg-handler
