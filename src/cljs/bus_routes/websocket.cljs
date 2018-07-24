@@ -4,7 +4,8 @@
   (:require
    [cljs.core.async :as async :refer (<! >! put! chan)]
    [taoensso.sente  :as sente :refer (cb-success?)]
-   [taoensso.encore :as encore :refer-macros (have have?)]))
+   [taoensso.encore :as encore :refer-macros (have have?)]
+   [re-frame.core :as rf]))
 
 
 (defn start-websocket []
@@ -51,7 +52,8 @@
 
 (defmethod -event-msg-handler :bus-line/coord
   [{:as ev-msg :keys [?data]}]
-  (println "Push coord from server: %s" ?data))
+  (do (println "Push coord from server: %s" ?data)
+      (rf/dispatch [:bus-line/coord (:coord ?data)])))
 
 
 ;; (chsk-send! [:test/first {:data (str "JEBEM TI MAJKUUU: 10x!!")}])

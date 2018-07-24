@@ -44,7 +44,9 @@
   (let [data (select-keys ev-msg [:client-id :?data])
         {:keys [client-id ?data]} data
         _ (println "client: " client-id " wants: " ?data)]
-    (swap! subscriptions assoc client-id (:bus-line ?data))))
+    (swap! subscriptions assoc client-id (:bus-line ?data))
+    (when ?reply-fn
+      (?reply-fn (bus-stop/latest-coord (get @subscriptions client-id))))))
 
 
 
@@ -66,25 +68,6 @@
      :send-fn send-fn
      :stop-fn (sente/start-chsk-router! ch-recv event-msg-handler)}))
 
-(mount/defstate channel
-  :start (start-socket-server! event-msg-handler)
-  :stop (:stop-fn channel))
-
-
-(defroutes websocket-routes
-  (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
-  (POST "/chsk" req (ring-ajax-post req)))
-
-
-;; (defn test-fast-server>user-pushes
-;;   "Quickly pushes 100 events to all connected users. Note that this'll be
-;;   fast+reliable even over Ajax!"
-;;   []
-;;   (doseq [uid (:any @connected-uids)]
-;;     (doseq [i (range 10)]
-;;       (chsk-send! uid [:fast-push/is-fast {:data (str "test: " i)}]))))
-
-;; (comment (test-fast-server>user-pushes))
 
 (defonce broadcast-enabled? (atom true))
 #_ (reset! broadcast-enabled? false)
@@ -120,24 +103,26 @@
         (broadcast! i))
       (recur (inc i)))))
 
-(defonce start-broadcast (start-example-broadcaster!))
-
-;; (chsk-send! "79cfdd19-65c2-46eb-af8e-436f67a0a026"
-;;             [:bus-line/coord
-;;              {:what-is-this "An async broadcast pushed from server"
-;;               :how-often "Every 10 seconds"
-;;               :to-whom  "79cfdd19-65c2-46eb-af8e-436f67a0a026"
-;;               :coord (bus-stop/latest-coord
-;;                       (get @subscriptions "79cfdd19-65c2-46eb-af8e-436f67a0a026"))}])
-
-;; (chsk-send! "79cfdd19-65c2-46eb-af8e-436f67a0a026"
-;;             [:test/first
-;;              {:coord (bus-stop/latest-coord
-;;                       (get @subscriptions "79cfdd19-65c2-46eb-af8e-436f67a0a026"))}])
-
-
-
-;; (chsk-send! (java.util.UUID/fromString "79cfdd19-65c2-46eb-af8e-436f67a0a026") [:fast-push/is-fast {:data "testino"}])
-
 ;; (doseq [uid (:any @connected-uids)]
 ;;   (chsk-send! uid [:bus-stop/latest-coord {:data "testino"}]))
+
+(mount/defstate channel
+  :start (do (start-socket-server! event-msg-handler)
+             (start-example-broadcaster!))
+  :stop (:stop-fn channel))
+
+
+(defroutes websocket-routes
+  (GET  "/chsk" req (ring-ajax-get-or-ws-handshake req))
+  (POST "/chsk" req (ring-ajax-post req)))
+
+
+;; (defn test-fast-server>user-pushes
+;;   "Quickly pushes 100 events to all connected users. Note that this'll be
+;;   fast+reliable even over Ajax!"
+;;   []
+;;   (doseq [uid (:any @connected-uids)]
+;;     (doseq [i (range 10)]
+;;       (chsk-send! uid [:fast-push/is-fast {:data (str "test: " i)}]))))
+
+;; (comment (test-fast-server>user-pushes))

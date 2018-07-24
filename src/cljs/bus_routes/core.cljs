@@ -74,6 +74,9 @@
       (when-let [coord (rf/subscribe [:coord])]
         [:div (str @coord)])]
      [:br]
+     (when-let [coord (rf/subscribe [:bus-line/coord])]
+       [:div (str @coord)])
+     [:br]
      [:button {:type "button"
                :on-click #(rf/dispatch [:ws {:data "AAAA"}])} "chsk-send! [:test/first]"]]
     ))

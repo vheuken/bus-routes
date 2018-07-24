@@ -4,4 +4,5 @@
   {:page :route
    :coord nil
    :error nil
-   :bus-line/sub-to nil})
+   :bus-line/sub-to nil
+   :bus-line/coord nil})

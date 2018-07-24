@@ -1,7 +1,8 @@
 (ns bus-routes.events
   (:require [re-frame.core :refer [dispatch reg-event-db reg-sub]]
             [bus-routes.db :as db]
-            [bus-routes.websocket :as ws]))
+            [bus-routes.websocket :as ws]
+            [taoensso.sente  :as sente :refer (cb-success?)]))
 
 ;;dispatchers
 
@@ -48,8 +49,21 @@
 (reg-event-db
  :bus-line/sub-to
  (fn [db [_ bus-line]]
-   (ws/chsk-send! [:bus-line/sub-to {:bus-line bus-line}])
+   (ws/chsk-send! [:bus-line/sub-to {:bus-line bus-line}]
+                  3000
+                  (fn [reply]      ; Reply is arbitrary Clojure data
+                    (if (sente/cb-success? reply) ; Checks for :chsk/closed, :chsk/timeout, :chsk/error
+                      (do
+                        (println reply)
+                        (dispatch [:bus-line/coord reply]))
+                      (js/alert "No reply"))))
    (assoc db :bus-line/sub-to bus-line)))
+
+(reg-event-db
+ :bus-line/coord
+ (fn [db [_ coord]]
+   (assoc db :bus-line/coord coord)))
+
 
 
 ;;subscriptions
@@ -73,3 +87,8 @@
  :error
  (fn [db _]
    (:error db)))
+
+(reg-sub
+ :bus-line/coord
+ (fn [db _]
+   (:bus-line/coord db)))
