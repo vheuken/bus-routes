@@ -7,18 +7,15 @@
    [taoensso.encore :as encore :refer-macros (have have?)]))
 
 
-(let [rand-chsk-type (if (>= (rand) 0.5) :ajax :auto)
-      _ (println "Randomly selected chsk type: %s" rand-chsk-type)
-      packer :edn
-      {:keys [chsk ch-recv send-fn state]} (sente/make-channel-socket-client! "/chsk"
-       {:type   rand-chsk-type
-        :packer packer})]
+(defn start-websocket []
+  (let [{:keys [chsk ch-recv send-fn state]}
+        (sente/make-channel-socket-client! "/chsk" {:type :auto})]
 
-  (def chsk       chsk)
-  (def ch-chsk    ch-recv) ; ChannelSocket's receive channel
-  (def chsk-send! send-fn) ; ChannelSocket's send API fn
-  (def chsk-state state)   ; Watchable, read-only atom
-  )
+    (defonce chsk chsk)
+    (defonce ch-chsk ch-recv) ; ChannelSocket's receive channel
+    (defonce chsk-send! send-fn) ; ChannelSocket's send API fn
+    (defonce chsk-state state)   ; Watchable, read-only atom
+    ))
 
 
 (defmulti -event-msg-handler
@@ -57,23 +54,13 @@
 
 ;; TODO Add your (defmethod -event-msg-handler <event-id> [ev-msg] <body>)s here...
 
-(defmethod -event-msg-handler :test/first
-  [{:as ev-msg :keys [?data]}]
-  (let [[?uid ?csrf-token ?handshake-data] ?data]
-    (println "TEST FIRST>>: %s" ?data)))
+;; (defmethod -event-msg-handler :test/first
+;;   [{:as ev-msg :keys [?data]}]
+;;   (let [[?uid ?csrf-token ?handshake-data] ?data]
+;;     (println "TEST FIRST>>: %s" ?data)))
 
 
-;;;; Sente event router (our `event-msg-handler` loop)
 
-(defonce router_ (atom nil))
-(defn  stop-router! [] (when-let [stop-f @router_] (stop-f)))
-(defn start-router! []
-  (stop-router!)
-  (reset! router_
-          (sente/start-client-chsk-router!
-           ch-chsk event-msg-handler)))
-
-
-(defn start! [] (start-router!))
-
-(defonce _start-once (start!))
+(defn start-ws []
+  (start-websocket)
+  (sente/start-client-chsk-router! ch-chsk event-msg-handler))

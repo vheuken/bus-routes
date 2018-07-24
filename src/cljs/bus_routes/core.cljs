@@ -7,7 +7,8 @@
             [ajax.core :refer [GET POST]]
             [bus-routes.ajax :refer [load-interceptors!]]
             [bus-routes.events]
-            [secretary.core :as secretary])
+            [secretary.core :as secretary]
+            [bus-routes.websocket :as ws])
   (:import goog.History))
 
 (defn nav-link [uri title page]
@@ -125,4 +126,5 @@
   (load-interceptors!)
   ;; (fetch-docs!)
   (hook-browser-navigation!)
-  (mount-components))
+  (mount-components)
+  (ws/start-ws))
