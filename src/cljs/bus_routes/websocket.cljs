@@ -53,7 +53,7 @@
 (defmethod -event-msg-handler :bus-line/coord
   [{:as ev-msg :keys [?data]}]
   (do (println "Push coord from server: %s" ?data)
-      (rf/dispatch [:bus-line/coord ?data])))
+      (rf/dispatch [:bus-line/coord (:coord ?data)])))
 
 
 ;; (chsk-send! [:test/first {:data (str "JEBEM TI MAJKUUU: 10x!!")}])
